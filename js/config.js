@@ -12,16 +12,14 @@ export const CONFIG = {
   VERSION: "1.0.0",
 
   // Default Event Settings
-  DEFAULT_ROOM_CODE: "DEFCON-1983",
+  DEFAULT_ROOM_CODE: "DEFCON-193",
   DEFAULT_DURATION_MINUTES: 90,
   SUBMISSION_COOLDOWN_MS: 3000, // 3-second anti-brute-force rate limit
   SPEED_BONUS_MINUTES: 5,       // Extra points if solved within first 5 mins of unlock
 
   // Supabase Configuration
-  // Organizers can set these via Admin Panel, localStorage, or URL parameters:
-  // e.g. https://<user>.github.io/shall-we-play-a-game/?supabase_url=...&supabase_key=...
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://aducxgzbeokdqtbpiboo.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_cHLS3f-BIARNMyVeRrs5tA_qblq0T5X",
 
   // Audio configuration
   SOUND_DEFAULT_ENABLED: true,
@@ -32,7 +30,7 @@ export const CONFIG = {
     
     // Check URL overrides
     const urlSb = params.get("supabase_url");
-    const urlKey = params.get("supabase_key");
+    const urlKey = params.get("supabase_key") || params.get("publishable_key");
     const urlRoom = params.get("room") || params.get("pin");
 
     if (urlSb && urlKey) {
@@ -41,13 +39,20 @@ export const CONFIG = {
       localStorage.setItem("swpag_supabase_url", urlSb);
       localStorage.setItem("swpag_supabase_key", urlKey);
     } else {
-      this.SUPABASE_URL = localStorage.getItem("swpag_supabase_url") || "";
-      this.SUPABASE_ANON_KEY = localStorage.getItem("swpag_supabase_key") || "";
+      const storedUrl = localStorage.getItem("swpag_supabase_url");
+      const storedKey = localStorage.getItem("swpag_supabase_key");
+      if (storedUrl) this.SUPABASE_URL = storedUrl;
+      if (storedKey) this.SUPABASE_ANON_KEY = storedKey;
     }
 
     if (urlRoom) {
       this.DEFAULT_ROOM_CODE = urlRoom.toUpperCase();
     }
+  },
+
+  getParticipantOnboardingUrl() {
+    const base = window.location.origin + window.location.pathname;
+    return `${base}?room=${encodeURIComponent(this.DEFAULT_ROOM_CODE)}&supabase_url=${encodeURIComponent(this.SUPABASE_URL)}&supabase_key=${encodeURIComponent(this.SUPABASE_ANON_KEY)}`;
   },
 
   isSupabaseConfigured() {
@@ -58,6 +63,7 @@ export const CONFIG = {
     this.SUPABASE_URL = url.trim();
     this.SUPABASE_ANON_KEY = key.trim();
     localStorage.setItem("swpag_supabase_url", this.SUPABASE_URL);
+
     localStorage.setItem("swpag_supabase_key", this.SUPABASE_ANON_KEY);
   },
 

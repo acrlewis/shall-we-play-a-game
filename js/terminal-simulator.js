@@ -261,7 +261,7 @@ Disallow: /vault/flag-r0b0ts-disallow/
       case "rot13":
         const text = args.join(" ");
         if (!text) {
-          this.writeOutput("<span class="text-yellow-400">Usage: rot13 &lt;string&gt;</span>");
+          this.writeOutput(`<span class="text-yellow-400">Usage: rot13 &lt;string&gt;</span>`);
         } else {
           const result = CRYPTO.rot13(text);
           this.writeOutput(`<span class="text-slate-400">ROT13 Result:</span> <span class="text-emerald-400 font-bold">${result}</span>`);
@@ -271,7 +271,7 @@ Disallow: /vault/flag-r0b0ts-disallow/
       case "hexdump":
         const hex = args.join("");
         if (!hex) {
-          this.writeOutput("<span class="text-yellow-400">Usage: hexdump &lt;hex-string&gt;</span>");
+          this.writeOutput(`<span class="text-yellow-400">Usage: hexdump &lt;hex-string&gt;</span>`);
         } else {
           const ascii = CRYPTO.hexToAscii(hex);
           this.writeOutput(`<span class="text-slate-400">ASCII Decoded:</span> <span class="text-emerald-400 font-bold">${ascii}</span>`);
@@ -281,13 +281,13 @@ Disallow: /vault/flag-r0b0ts-disallow/
       case "base64":
         const b64 = args.join("");
         if (!b64) {
-          this.writeOutput("<span class="text-yellow-400">Usage: base64 &lt;base64-string&gt;</span>");
+          this.writeOutput(`<span class="text-yellow-400">Usage: base64 &lt;base64-string&gt;</span>`);
         } else {
           try {
             const dec = CRYPTO.base64Decode(b64);
             this.writeOutput(`<span class="text-slate-400">Base64 Decoded:</span> <span class="text-emerald-400 font-bold">${dec}</span>`);
           } catch {
-            this.writeOutput("<span class="text-red-400">Error: Invalid base64 sequence</span>");
+            this.writeOutput(`<span class="text-red-400">Error: Invalid base64 sequence</span>`);
           }
         }
         break;
@@ -295,7 +295,7 @@ Disallow: /vault/flag-r0b0ts-disallow/
       case "hash":
         const inputStr = args.join(" ");
         if (!inputStr) {
-          this.writeOutput("<span class="text-yellow-400">Usage: hash &lt;string&gt;</span>");
+          this.writeOutput(`<span class="text-yellow-400">Usage: hash &lt;string&gt;</span>`);
         } else {
           CRYPTO.hash(inputStr).then(h => {
             this.writeOutput(`<span class="text-slate-400">SHA-256 (Normalized):</span> <span class="text-cyan-400 font-mono">${h}</span>`);

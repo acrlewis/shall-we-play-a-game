@@ -30,6 +30,7 @@ class App {
     this.initConfetti();
     this.bindGlobalNavigation();
     this.bindSoundToggle();
+    this.bindOnboardingTriggers();
 
     // Setup terminal simulator
     this.terminal = new TerminalSimulator("terminal-container");
@@ -44,13 +45,14 @@ class App {
     this.handleRouteHash();
     window.addEventListener("hashchange", () => this.handleRouteHash());
 
+    // Always initialize HUD, challenges, and terminal so content is immediately visible
+    this.updateUserHud();
+    this.renderChallenges();
+    if (this.terminal) this.terminal.render();
+
     // Check Onboarding
     if (!STORAGE.isAuthenticated() && this.currentView !== "projector") {
       this.showOnboardingModal();
-    } else {
-      this.updateUserHud();
-      this.renderChallenges();
-      this.terminal.render();
     }
 
     // Initial leaderboard fetch
@@ -146,22 +148,77 @@ class App {
     }
   }
 
+  bindOnboardingTriggers() {
+    // Open Onboarding Modal from Header or Banner
+    const openBtns = [
+      document.getElementById("open-onboarding-btn"),
+      document.getElementById("hero-onboard-btn")
+    ];
+    openBtns.forEach(btn => {
+      if (btn) {
+        btn.addEventListener("click", () => {
+          SOUND.playBeep(800, 0.04);
+          this.showOnboardingModal();
+        });
+      }
+    });
+
+    // Close Modal Button
+    const closeBtn = document.getElementById("close-onboarding-modal-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        SOUND.playBeep(400, 0.03);
+        document.getElementById("onboarding-modal")?.classList.add("hidden");
+      });
+    }
+
+    // Copy Onboarding Link Button
+    const copyBtn = document.getElementById("copy-onboard-link-btn");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        const url = CONFIG.getParticipantOnboardingUrl();
+        try {
+          await navigator.clipboard.writeText(url);
+          SOUND.playCorrect();
+          const copyText = document.getElementById("copy-text");
+          const copyIcon = document.getElementById("copy-icon");
+          if (copyText) copyText.innerText = "Link Copied!";
+          if (copyIcon) copyIcon.innerText = "✓";
+          copyBtn.classList.add("bg-emerald-950", "border-emerald-500", "text-emerald-300");
+          setTimeout(() => {
+            if (copyText) copyText.innerText = "Copy Onboard Link";
+            if (copyIcon) copyIcon.innerText = "📋";
+            copyBtn.classList.remove("bg-emerald-950", "border-emerald-500", "text-emerald-300");
+          }, 3000);
+        } catch {
+          prompt("Copy this participant onboarding link:", url);
+        }
+      });
+    }
+  }
+
   // ----------------------------------------------------------------------------
   // HUD & Timer
   // ----------------------------------------------------------------------------
   updateUserHud() {
     const session = STORAGE.getSession();
-    if (!session) return;
+    const activeRoom = (session && session.roomCode) ? session.roomCode : CONFIG.DEFAULT_ROOM_CODE;
+
+    const headerRoomEl = document.getElementById("header-room-badge");
+    if (headerRoomEl) headerRoomEl.innerText = `ROOM: ${activeRoom}`;
+
+    const hudRoomEl = document.getElementById("hud-room-code");
+    if (hudRoomEl) hudRoomEl.innerText = activeRoom;
 
     const teamEl = document.getElementById("hud-team-name");
     const scoreEl = document.getElementById("hud-total-score");
     const roleEl = document.getElementById("hud-role-tag");
     const solvedEl = document.getElementById("hud-solved-count");
 
-    if (teamEl) teamEl.innerText = session.teamName;
-    if (scoreEl) scoreEl.innerText = `${session.totalScore || 0} PTS`;
-    if (roleEl) roleEl.innerText = session.roleTag;
-    if (solvedEl) solvedEl.innerText = `${Object.keys(session.solvedChallenges || {}).length} / ${CHALLENGES.length}`;
+    if (teamEl) teamEl.innerText = session ? session.teamName : "Unregistered";
+    if (scoreEl) scoreEl.innerText = `${session ? session.totalScore : 0} PTS`;
+    if (roleEl) roleEl.innerText = session ? session.roleTag : "Full-Stack";
+    if (solvedEl) solvedEl.innerText = `${Object.keys(session?.solvedChallenges || {}).length} / ${CHALLENGES.length}`;
   }
 
   initTimer() {
@@ -203,6 +260,19 @@ class App {
     const modal = document.getElementById("onboarding-modal");
     if (!modal) return;
     modal.classList.remove("hidden");
+
+    // Close modal on backdrop click
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.classList.add("hidden");
+      }
+    };
+
+    // Pre-populate active room code from config if not already set
+    const roomInput = document.getElementById("input-room-code");
+    if (roomInput && (!roomInput.value || roomInput.value === "DEFCON-1983")) {
+      roomInput.value = CONFIG.DEFAULT_ROOM_CODE;
+    }
 
     const form = document.getElementById("onboarding-form");
     const errBox = document.getElementById("onboarding-error");
@@ -721,7 +791,7 @@ class App {
   // ----------------------------------------------------------------------------
   initConfetti() {
     this.canvas = document.getElementById("confetti-canvas");
-    if (!this.canvas) return;
+    if (!this.canvas || typeof this.canvas.getContext !== "function") return;
     this.ctx = this.canvas.getContext("2d");
     this.particles = [];
 
@@ -790,7 +860,16 @@ class App {
   }
 }
 
-// Instantiate App once DOM is loaded
-window.addEventListener("DOMContentLoaded", () => {
-  window.SWPAG_APP = new App();
-});
+// Instantiate App once DOM is loaded or immediately if already ready
+function initApp() {
+  if (!window.SWPAG_APP) {
+    window.SWPAG_APP = new App();
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
+

@@ -266,22 +266,40 @@ $$;
 -- ------------------------------------------------------------------------------
 -- 10. Enable Supabase Realtime Subscriptions
 -- ------------------------------------------------------------------------------
-BEGIN;
-  -- Remove if already in publication
-  ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS teams;
-  ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS submissions;
-  
-  -- Add to publication
-  ALTER PUBLICATION supabase_realtime ADD TABLE teams;
-  ALTER PUBLICATION supabase_realtime ADD TABLE submissions;
-COMMIT;
+DO $$
+BEGIN
+  -- Ensure publication exists
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+
+  -- Add teams table if not already present in publication
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'teams'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE teams;
+  END IF;
+
+  -- Add submissions table if not already present in publication
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'submissions'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE submissions;
+  END IF;
+END $$;
+
 
 -- ------------------------------------------------------------------------------
 -- 11. Initial Seed Data (Default Room & 10 Challenges)
 -- ------------------------------------------------------------------------------
 INSERT INTO rooms (room_code, name, is_active, duration_minutes)
-VALUES ('DEFCON-1983', 'W.O.P.R. Global Hackathon', TRUE, 90)
+VALUES 
+    ('DEFCON-193', 'W.O.P.R. Live Hackathon', TRUE, 90),
+    ('DEFCON-1983', 'W.O.P.R. Global Simulation', TRUE, 90)
 ON CONFLICT (room_code) DO NOTHING;
+
 
 INSERT INTO challenges (id, tier, tier_name, category, title, points, answer_hash, prompt, clue, input_placeholder, hints)
 VALUES
