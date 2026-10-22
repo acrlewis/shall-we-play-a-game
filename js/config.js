@@ -12,7 +12,7 @@ export const CONFIG = {
   VERSION: "1.0.0",
 
   // Default Event Settings
-  DEFAULT_ROOM_CODE: "DEFCON-193",
+  DEFAULT_ROOM_CODE: "DEFCON-1983",
   DEFAULT_DURATION_MINUTES: 90,
   SUBMISSION_COOLDOWN_MS: 3000, // 3-second anti-brute-force rate limit
   SPEED_BONUS_MINUTES: 5,       // Extra points if solved within first 5 mins of unlock

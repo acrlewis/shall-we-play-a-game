@@ -137,25 +137,30 @@ export class SupabaseClientManager {
   }
 
   // ----------------------------------------------------------------------------
-  // API Methods (Supabase with Automatic Mock Fallback)
   // ----------------------------------------------------------------------------
-  async registerTeam(roomCode, teamName, roleTag, avatar) {
+  // API Methods (Supabase with Automatic Mock Fallback & Strict Timeouts)
+  // ----------------------------------------------------------------------------
+  async registerTeam(roomCode, teamName, roleTag = "Full-Stack", avatar = "terminal-green") {
     if (!this.isMockMode && this.client) {
       try {
-        // Check if team already exists
-        const { data: existing } = await this.client
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase register timeout")), 4000)
+        );
+
+        const checkPromise = this.client
           .from("teams")
           .select("*")
           .eq("room_code", roomCode)
           .eq("team_name", teamName)
-          .single();
+          .maybeSingle();
 
+        const { data: existing } = await Promise.race([checkPromise, timeoutPromise]);
         if (existing) {
           return { success: true, team: existing };
         }
 
         // Insert new team
-        const { data, error } = await this.client
+        const insertPromise = this.client
           .from("teams")
           .insert([
             {
@@ -170,14 +175,15 @@ export class SupabaseClientManager {
           .select()
           .single();
 
+        const { data, error } = await Promise.race([insertPromise, timeoutPromise]);
         if (error) throw error;
-        return { success: true, team: data };
+        if (data) return { success: true, team: data };
       } catch (err) {
         console.warn("Supabase register error, using local session:", err);
       }
     }
 
-    // Local / Mock Mode
+    // Local / Mock Mode Fallback
     let team = this.mockTeams.find(
       t => t.room_code === roomCode && t.team_name.toLowerCase() === teamName.toLowerCase()
     );
@@ -195,7 +201,7 @@ export class SupabaseClientManager {
       };
       this.mockTeams.push(team);
       this.saveMockTeams();
-      this.broadcastLocalUpdate(await this.fetchLeaderboard(roomCode));
+      this.fetchLeaderboard(roomCode).then(lb => this.broadcastLocalUpdate(lb));
     }
 
     return { success: true, team };
@@ -204,21 +210,26 @@ export class SupabaseClientManager {
   async fetchLeaderboard(roomCode = CONFIG.DEFAULT_ROOM_CODE) {
     if (!this.isMockMode && this.client) {
       try {
-        const { data, error } = await this.client
+        // 4-second timeout wrapper so UI never hangs
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase leaderboard timeout")), 4000)
+        );
+        const fetchPromise = this.client
           .from("leaderboard_view")
           .select("*")
           .eq("room_code", roomCode)
           .order("rank", { ascending: true });
 
-        if (!error && data) {
+        const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+        if (!error && Array.isArray(data) && data.length > 0) {
           return data;
         }
       } catch (err) {
-        console.warn("Error fetching Supabase leaderboard:", err);
+        console.warn("Supabase leaderboard fetch fallback to local:", err);
       }
     }
 
-    // Local Leaderboard
+    // Local / Mock Leaderboard fallback
     const filtered = this.mockTeams.filter(t => t.room_code === roomCode);
     filtered.sort((a, b) => {
       if (b.total_score !== a.total_score) {
@@ -237,10 +248,17 @@ export class SupabaseClientManager {
     const normalized = CRYPTO.normalize(rawAnswer);
     const answerHash = await CRYPTO.hash(rawAnswer);
 
-    // If live Supabase is connected, execute stored procedure
-    if (!this.isMockMode && this.client) {
+    // Validate if teamId is a valid Postgres UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(teamId || ''));
+
+    // If live Supabase is connected and teamId is a valid UUID, execute stored procedure with 5s timeout
+    if (!this.isMockMode && this.client && isUuid) {
       try {
-        const { data, error } = await this.client.rpc("submit_challenge_answer", {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Verification request timed out. Please try again.")), 5000)
+        );
+
+        const rpcPromise = this.client.rpc("submit_challenge_answer", {
           p_room_code: roomCode,
           p_team_id: teamId,
           p_challenge_id: challengeId,
@@ -248,8 +266,16 @@ export class SupabaseClientManager {
           p_hints_used: hintsUsedCount
         });
 
+        const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
+
         if (error) throw error;
-        return data;
+        if (data) {
+          if (data.success) {
+            const updatedLeaderboard = await this.fetchLeaderboard(roomCode);
+            this.broadcastLocalUpdate(updatedLeaderboard);
+          }
+          return data;
+        }
       } catch (err) {
         console.warn("Supabase stored procedure submission failed, evaluating locally:", err);
       }
@@ -274,13 +300,25 @@ export class SupabaseClientManager {
     const points = calculatePoints(challenge, hintsUsedCount);
 
     // Update mock team record
-    const team = this.mockTeams.find(t => t.id === teamId || t.team_name === teamId);
-    if (team) {
-      team.total_score += points;
-      team.challenges_solved += 1;
-      team.last_submission_at = new Date().toISOString();
-      this.saveMockTeams();
+    let team = this.mockTeams.find(t => t.id === teamId || t.team_name === teamId);
+    if (!team) {
+      team = {
+        id: teamId || `local-${Date.now()}`,
+        room_code: roomCode,
+        team_name: teamId || "Operator",
+        role_tag: "Full-Stack",
+        avatar: "terminal-green",
+        total_score: 0,
+        challenges_solved: 0,
+        last_submission_at: new Date().toISOString()
+      };
+      this.mockTeams.push(team);
     }
+
+    team.total_score += points;
+    team.challenges_solved += 1;
+    team.last_submission_at = new Date().toISOString();
+    this.saveMockTeams();
 
     const updatedLeaderboard = await this.fetchLeaderboard(roomCode);
     this.broadcastLocalUpdate(updatedLeaderboard);
@@ -289,8 +327,8 @@ export class SupabaseClientManager {
       success: true,
       challenge_id: challengeId,
       points_awarded: points,
-      total_score: team ? team.total_score : points,
-      challenges_solved: team ? team.challenges_solved : 1,
+      total_score: team.total_score,
+      challenges_solved: team.challenges_solved,
       message: "AUTHENTICATION GRANTED // ACCESS CODES VERIFIED"
     };
   }
@@ -303,26 +341,63 @@ export class SupabaseClientManager {
     this.broadcastLocalUpdate([]);
   }
 
-  seedDemoBot() {
-    const botNames = ["CyberValkyries", "CircuitBreakers", "ZeroDayKnights", "CryptoWizards"];
-    const roles = ["SecOps", "DevOps", "Full-Stack", "QA"];
+  async seedDemoBot(roomCode = CONFIG.DEFAULT_ROOM_CODE) {
+    const botNames = ["CyberValkyries", "CircuitBreakers", "ZeroDayKnights", "CryptoWizards", "GhostPackets", "BinaryBandits"];
+    const roles = ["SecOps", "DevOps", "Full-Stack", "QA", "SRE"];
     const randomName = botNames[Math.floor(Math.random() * botNames.length)] + "-" + Math.floor(Math.random() * 90 + 10);
     const randomRole = roles[Math.floor(Math.random() * roles.length)];
+    const score = Math.floor(Math.random() * 500 + 100);
+    const solved = Math.floor(Math.random() * 4 + 1);
 
+    if (!this.isMockMode && this.client) {
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Bot seed timeout")), 4000)
+        );
+
+        const insertPromise = this.client
+          .from("teams")
+          .insert([
+            {
+              room_code: roomCode,
+              team_name: randomName,
+              role_tag: randomRole,
+              avatar: "avatar-robot",
+              total_score: score,
+              challenges_solved: solved,
+              last_submission_at: new Date().toISOString()
+            }
+          ])
+          .select()
+          .single();
+
+        const { data, error } = await Promise.race([insertPromise, timeoutPromise]);
+        if (!error && data) {
+          const lb = await this.fetchLeaderboard(roomCode);
+          this.broadcastLocalUpdate(lb);
+          return { success: true, team: data };
+        }
+      } catch (err) {
+        console.warn("Error inserting demo bot into Supabase:", err);
+      }
+    }
+
+    // Local / Offline fallback
     const bot = {
       id: `bot-${Date.now()}`,
-      room_code: CONFIG.DEFAULT_ROOM_CODE,
+      room_code: roomCode,
       team_name: randomName,
       role_tag: randomRole,
       avatar: "avatar-robot",
-      total_score: Math.floor(Math.random() * 400 + 100),
-      challenges_solved: Math.floor(Math.random() * 4 + 1),
+      total_score: score,
+      challenges_solved: solved,
       last_submission_at: new Date().toISOString()
     };
-
     this.mockTeams.push(bot);
     this.saveMockTeams();
-    this.fetchLeaderboard(CONFIG.DEFAULT_ROOM_CODE).then(lb => this.broadcastLocalUpdate(lb));
+    const lb = await this.fetchLeaderboard(roomCode);
+    this.broadcastLocalUpdate(lb);
+    return { success: true, team: bot };
   }
 }
 

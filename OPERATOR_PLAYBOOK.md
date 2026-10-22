@@ -50,7 +50,7 @@
 ---
 
 ### Step 3: Configure Event Room & Access PIN
-The database is pre-seeded with rooms `DEFCON-193` (default) and `DEFCON-1983`. To create an additional custom room PIN (e.g., `HACK-2026`):
+The database is pre-seeded with rooms `DEFCON-1983` (default) and `DEFCON-1983`. To create an additional custom room PIN (e.g., `HACK-2026`):
 Run this query in Supabase SQL Editor:
 ```sql
 INSERT INTO rooms (room_code, name, is_active, duration_minutes)

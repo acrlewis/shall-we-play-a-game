@@ -56,7 +56,8 @@ class App {
     }
 
     // Initial leaderboard fetch
-    const initialLb = await SUPABASE.fetchLeaderboard(CONFIG.DEFAULT_ROOM_CODE);
+    const activeRoom = STORAGE.getSession()?.roomCode || CONFIG.DEFAULT_ROOM_CODE;
+    const initialLb = await SUPABASE.fetchLeaderboard(activeRoom);
     this.updateLeaderboardViews(initialLb);
     this.updateLiveTicker(initialLb);
   }
@@ -65,7 +66,7 @@ class App {
   // Routing & Views
   // ----------------------------------------------------------------------------
   handleRouteHash() {
-    const hash = window.location.hash.replace("#", "").toLowerCase();
+    const hash = (window.location.hash || "").replace("#", "").toLowerCase();
     if (["game", "leaderboard", "projector", "admin", "rules"].includes(hash)) {
       this.switchView(hash);
     } else if (!hash) {
@@ -101,13 +102,14 @@ class App {
     });
 
     // View-specific actions
+    const currentRoom = STORAGE.getSession()?.roomCode || CONFIG.DEFAULT_ROOM_CODE;
     if (viewName === "game") {
       this.renderChallenges();
       if (this.terminal) this.terminal.render();
     } else if (viewName === "projector") {
-      SUPABASE.fetchLeaderboard(CONFIG.DEFAULT_ROOM_CODE).then(lb => this.updateProjectorView(lb));
+      SUPABASE.fetchLeaderboard(currentRoom).then(lb => this.updateProjectorView(lb));
     } else if (viewName === "leaderboard") {
-      SUPABASE.fetchLeaderboard(CONFIG.DEFAULT_ROOM_CODE).then(lb => this.updateLeaderboardTable(lb));
+      SUPABASE.fetchLeaderboard(currentRoom).then(lb => this.updateLeaderboardTable(lb));
     } else if (viewName === "admin") {
       this.renderAdminPanel();
     }
@@ -511,9 +513,24 @@ class App {
         submitBtn.innerText = "VERIFYING...";
         STORAGE.recordSubmissionAttempt();
 
-        const session = STORAGE.getSession();
-        const roomCode = session ? session.roomCode : CONFIG.DEFAULT_ROOM_CODE;
-        const teamId = session ? session.teamId : "local-user";
+        let session = STORAGE.getSession();
+        const roomCode = session?.roomCode || CONFIG.DEFAULT_ROOM_CODE;
+        let teamId = session?.teamId;
+
+        // Auto-provision guest operator team if user submitted before registering
+        if (!teamId || !session) {
+          try {
+            const guestName = "Operator-" + Math.floor(1000 + Math.random() * 9000);
+            const regRes = await SUPABASE.registerTeam(roomCode, guestName, "Full-Stack", "terminal-green");
+            teamId = regRes.team?.id;
+            STORAGE.initTeamSession(roomCode, guestName, "Full-Stack", "terminal-green", teamId);
+            session = STORAGE.getSession();
+            this.updateUserHud();
+          } catch (regErr) {
+            console.warn("Guest team auto-provision warning:", regErr);
+          }
+        }
+
         const unlockedHints = STORAGE.getUnlockedHints(chalId);
 
         try {
@@ -525,7 +542,7 @@ class App {
             unlockedHints.length
           );
 
-          if (result.success) {
+          if (result && result.success) {
             SOUND.playCorrect();
             this.triggerConfetti();
             STORAGE.recordSolve(chalId, result.points_awarded, unlockedHints.length);
@@ -541,7 +558,7 @@ class App {
           } else {
             SOUND.playError();
             feedback.className = "feedback-msg text-[11px] font-mono text-red-400";
-            feedback.innerText = `✗ ${result.message || 'Incorrect response. Verification failed.'}`;
+            feedback.innerText = `✗ ${result?.message || 'Incorrect response. Verification failed.'}`;
             feedback.classList.remove("hidden");
           }
         } catch (err) {
@@ -732,9 +749,19 @@ class App {
 
     const seedBotBtn = document.getElementById("admin-seed-bot");
     if (seedBotBtn) {
-      seedBotBtn.onclick = () => {
-        SUPABASE.seedDemoBot();
+      seedBotBtn.onclick = async () => {
+        const originalText = seedBotBtn.innerText;
+        seedBotBtn.disabled = true;
+        seedBotBtn.innerText = "DEPLOYING BOT...";
+        const session = STORAGE.getSession();
+        const roomCode = session?.roomCode || CONFIG.DEFAULT_ROOM_CODE;
+        await SUPABASE.seedDemoBot(roomCode);
         SOUND.playBeep(880, 0.05);
+        seedBotBtn.innerText = "✓ BOT DEPLOYED!";
+        setTimeout(() => {
+          seedBotBtn.disabled = false;
+          seedBotBtn.innerText = originalText;
+        }, 1200);
       };
     }
 
@@ -753,7 +780,9 @@ class App {
     const exportBtn = document.getElementById("admin-export-csv");
     if (exportBtn) {
       exportBtn.onclick = async () => {
-        const lb = await SUPABASE.fetchLeaderboard(CONFIG.DEFAULT_ROOM_CODE);
+        const session = STORAGE.getSession();
+        const roomCode = session?.roomCode || CONFIG.DEFAULT_ROOM_CODE;
+        const lb = await SUPABASE.fetchLeaderboard(roomCode);
         this.exportLeaderboardCsv(lb);
       };
     }
