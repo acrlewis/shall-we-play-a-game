@@ -65,21 +65,21 @@ ON CONFLICT (room_code) DO NOTHING;
 ### Method A: One-Click Homepage Invite Link (Recommended)
 Right on the homepage header and at the top of the **Arena** view:
 1. Click the **"📋 Copy Onboard Link"** button on the homepage banner.
-2. The complete URL is copied to your clipboard with room `DEFCON-193` and your Supabase credentials pre-encoded.
+2. The complete URL is copied to your clipboard with room `DEFCON-1983` and your Supabase credentials pre-encoded.
 3. Share the copied link in Slack, Teams, or event chat.
 
 ### Method B: Pre-Configured URL Format
 Construct a pre-configured onboarding URL with query parameters:
 
 ```text
-https://<your-org>.github.io/shall-we-play-a-game/?room=DEFCON-193&supabase_url=https://aducxgzbeokdqtbpiboo.supabase.co&supabase_key=sb_publishable_cHLS3f-BIARNMyVeRrs5tA_qblq0T5X
+https://<your-org>.github.io/shall-we-play-a-game/?room=DEFCON-1983&supabase_url=https://aducxgzbeokdqtbpiboo.supabase.co&supabase_key=sb_publishable_cHLS3f-BIARNMyVeRrs5tA_qblq0T5X
 ```
 
 ### What Participants Experience:
 1. They click the link and arrive directly at the W.O.P.R. interface.
 2. A single registration modal appears asking for:
    - **Team Name / Handle** (e.g., `KernelPanic`)
-   - **Access PIN** (Pre-populated as `DEFCON-193`)
+   - **Access PIN** (Pre-populated as `DEFCON-1983`)
    - **Engineering Track** (e.g., `Full-Stack`, `DevOps`, `SecOps`, `QA`, `Data`)
 3. Alternatively, any participant can click the **"🚀 Onboard Team"** button in the top navigation at any time to register or switch teams.
 4. Once submitted, session state is persisted in `localStorage`. If a participant accidentally closes their tab or refreshes, their score, progress, and hints are restored immediately.
