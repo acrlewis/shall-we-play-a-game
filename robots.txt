@@ -1,0 +1,17 @@
+# ==============================================================================
+# W.O.P.R. DEFENSE MAINFRAME CRAWLER POLICY
+# SYSTEM CLASSIFICATION: TOP SECRET // JOSHUA-RESTRICTED
+# ==============================================================================
+
+User-agent: *
+Disallow: /admin/
+Disallow: /telemetry/launch-codes/
+Disallow: /wopr/internal-diagnostics/
+Disallow: /vault/flag-r0b0ts-disallow/
+
+# ------------------------------------------------------------------------------
+# SCAVENGER NOTICE:
+# Looking for Challenge 02 Flag?
+# ACCESS GRANTED TO DISALLOWED SECTOR:
+# FLAG{r0b0ts_txt_disallow_vault}
+# ------------------------------------------------------------------------------

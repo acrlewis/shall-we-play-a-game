@@ -1,0 +1,182 @@
+/* ==============================================================================
+   "SHALL WE PLAY A GAME?" — STYLESHEET & W.O.P.R. DESIGN SYSTEM
+   Retro-Cyberpunk + Modern Glassmorphism + Tactical HUD
+   ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,800;1,400&family=Orbitron:wght@600;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'Orbitron', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+
+  --color-bg: #070a10;
+  --color-panel: rgba(13, 20, 36, 0.85);
+  --color-panel-border: rgba(0, 229, 255, 0.25);
+  --color-cyan: #00e5ff;
+  --color-green: #00ff88;
+  --color-amber: #ffb703;
+  --color-crimson: #ff0055;
+  --color-violet: #a855f7;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: #e2e8f0;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.font-mono-code {
+  font-family: var(--font-mono);
+}
+
+.font-display-title {
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+}
+
+/* Subtle CRT Scanline Overlay */
+.crt-overlay {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.03),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.03)
+  );
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+}
+
+/* Glassmorphism tactical panels */
+.glass-panel {
+  background: var(--color-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-panel-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(0, 229, 255, 0.03);
+}
+
+.glass-panel-amber {
+  border-color: rgba(255, 183, 3, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(255, 183, 3, 0.04);
+}
+
+.glass-panel-green {
+  border-color: rgba(0, 255, 136, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(0, 255, 136, 0.04);
+}
+
+.glass-panel-crimson {
+  border-color: rgba(255, 0, 85, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(255, 0, 85, 0.04);
+}
+
+/* Glowing Neon Elements */
+.glow-cyan {
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6), 0 0 20px rgba(0, 229, 255, 0.25);
+}
+
+.glow-green {
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.6), 0 0 20px rgba(0, 255, 136, 0.25);
+}
+
+.glow-amber {
+  text-shadow: 0 0 8px rgba(255, 183, 3, 0.6), 0 0 20px rgba(255, 183, 3, 0.25);
+}
+
+.glow-crimson {
+  text-shadow: 0 0 8px rgba(255, 0, 85, 0.6), 0 0 20px rgba(255, 0, 85, 0.25);
+}
+
+.box-glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.35), inset 0 0 15px rgba(0, 229, 255, 0.1);
+}
+
+/* Pulsing radar dot */
+@keyframes radar-pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 0.3; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.pulse-radar {
+  animation: radar-pulse 2s infinite ease-in-out;
+}
+
+/* Ticker tape for projector view */
+@keyframes ticker-slide {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-ticker {
+  display: inline-block;
+  white-space: nowrap;
+  animation: ticker-slide 28s linear infinite;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090e18;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00e5ff;
+}
+
+/* Shimmer effect for solved challenges */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-badge {
+  background: linear-gradient(
+    90deg, 
+    rgba(0, 255, 136, 0.1) 0%, 
+    rgba(0, 255, 136, 0.4) 50%, 
+    rgba(0, 255, 136, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* Podium pedestal animations */
+.podium-1 {
+  background: linear-gradient(180deg, rgba(234, 179, 8, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-top: 3px solid #eab308;
+}
+
+.podium-2 {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-top: 3px solid #94a3b8;
+}
+
+.podium-3 {
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-top: 3px solid #d97706;
+}
+
+/* Confetti canvas */
+#confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
