@@ -66,7 +66,7 @@ Open `http://localhost:8080` in your web browser.
 
 ## 📖 Deployment & Operator Playbook
 
-For step-by-step instructions on forking the repository, enabling GitHub Pages, linking Supabase in 5 minutes, configuring custom room PINs, and projecting the live leaderboard, read the full **[OPERATOR PLAYBOOK](file:///Users/acrlewis/workspace/shall-we-play-a-game/OPERATOR_PLAYBOOK.md)**.
+For step-by-step instructions on forking the repository, enabling GitHub Pages, linking Supabase in 5 minutes, configuring custom room PINs, and projecting the live leaderboard, read the full **[OPERATOR PLAYBOOK](OPERATOR_PLAYBOOK.md)**.
 
 ---
 
