@@ -6,6 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Zero-Cost Serverless](https://img.shields.io/badge/Infrastructure-Zero--Cost-brightgreen.svg)](#)
 
+
+![war games](https://64.media.tumblr.com/caf4f2a301c9cf113ef56da7138fda88/3977935923a47baa-7a/s500x750/87d957291919d0ced7b9c5e0e67a2d96fccd84e7.gif)
+
 > *"A strange game. The only winning move is not to play. How about a nice game of chess?"*  
 > — W.O.P.R. / Joshua, *WarGames* (1983)
 
@@ -73,3 +76,6 @@ For step-by-step instructions on forking the repository, enabling GitHub Pages, 
 ## 🔐 Database Schema & Security
 
 See [`supabase/schema.sql`](file:///Users/acrlewis/workspace/shall-we-play-a-game/supabase/schema.sql) for the complete database schema, Row-Level Security (RLS) policies, and the anti-cheat stored procedure `submit_challenge_answer`.
+
+
+[def]: https://64.media.tumblr.com/caf4f2a301c9cf113ef56da7138fda88/3977935923a47baa-7a/s500x750/87d957291919d0ced7b9c5e0e67a2d96fccd84e7.gifv
