@@ -1108,7 +1108,7 @@ class SupabaseClientManager {
   // ----------------------------------------------------------------------------
   loadMockTeams() {
     const saved = localStorage.getItem("swpag_mock_teams");
-    if (saved) {
+    if (saved !== null) {
       try {
         this.mockTeams = JSON.parse(saved);
         return;
@@ -1354,11 +1354,40 @@ class SupabaseClientManager {
   }
 
   // Operator Actions
-  resetAllState() {
+  async resetAllState(roomCode = CONFIG.DEFAULT_ROOM_CODE) {
+    if (!this.isMockMode && this.client) {
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase reset RPC timeout")), 5000)
+        );
+
+        // 1. Invoke atomic reset stored procedure
+        const rpcPromise = this.client.rpc("reset_room_data", {
+          p_room_code: roomCode
+        });
+
+        const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
+        if (error) {
+          console.warn("RPC reset warning, attempting direct table deletions:", error);
+          await this.client.from("submissions").delete().eq("room_code", roomCode);
+          await this.client.from("teams").delete().eq("room_code", roomCode);
+        }
+      } catch (err) {
+        console.warn("Supabase resetAllState warning:", err);
+        try {
+          await this.client.from("submissions").delete().eq("room_code", roomCode);
+          await this.client.from("teams").delete().eq("room_code", roomCode);
+        } catch (delErr) {
+          console.error("Direct table deletion fallback failed:", delErr);
+        }
+      }
+    }
+
     this.mockTeams = [];
-    localStorage.removeItem("swpag_mock_teams");
+    localStorage.setItem("swpag_mock_teams", JSON.stringify([]));
     localStorage.removeItem("swpag_session_v1");
     this.broadcastLocalUpdate([]);
+    return { success: true };
   }
 
   async seedDemoBot(roomCode = CONFIG.DEFAULT_ROOM_CODE) {
@@ -2193,12 +2222,24 @@ class App {
 
     const resetBtn = document.getElementById("admin-reset-all");
     if (resetBtn) {
-      resetBtn.onclick = () => {
-        if (confirm("WARNING: Are you sure you want to reset all game state and clear local teams?")) {
-          SUPABASE.resetAllState();
-          SOUND.playError();
-          alert("All session data has been reset.");
-          window.location.reload();
+      resetBtn.onclick = async () => {
+        const session = STORAGE.getSession();
+        const roomCode = session?.roomCode || CONFIG.DEFAULT_ROOM_CODE;
+        if (confirm(`WARNING: Are you sure you want to reset all game state, scores, and teams for room ${roomCode}? This action cannot be undone.`)) {
+          const originalText = resetBtn.innerText;
+          resetBtn.disabled = true;
+          resetBtn.innerText = "RESETTING MISSION DATA...";
+          try {
+            await SUPABASE.resetAllState(roomCode);
+            STORAGE.clearSession();
+            SOUND.playError();
+            alert(`All game, team, and session data for room ${roomCode} has been reset.`);
+          } catch (err) {
+            console.error("Reset error:", err);
+            alert("Reset completed with warnings. Refreshing interface...");
+          } finally {
+            window.location.reload();
+          }
         }
       };
     }

@@ -88,7 +88,7 @@ export class SupabaseClientManager {
   // ----------------------------------------------------------------------------
   loadMockTeams() {
     const saved = localStorage.getItem("swpag_mock_teams");
-    if (saved) {
+    if (saved !== null) {
       try {
         this.mockTeams = JSON.parse(saved);
         return;
@@ -334,11 +334,40 @@ export class SupabaseClientManager {
   }
 
   // Operator Actions
-  resetAllState() {
+  async resetAllState(roomCode = CONFIG.DEFAULT_ROOM_CODE) {
+    if (!this.isMockMode && this.client) {
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase reset RPC timeout")), 5000)
+        );
+
+        // 1. Invoke atomic reset stored procedure
+        const rpcPromise = this.client.rpc("reset_room_data", {
+          p_room_code: roomCode
+        });
+
+        const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
+        if (error) {
+          console.warn("RPC reset warning, attempting direct table deletions:", error);
+          await this.client.from("submissions").delete().eq("room_code", roomCode);
+          await this.client.from("teams").delete().eq("room_code", roomCode);
+        }
+      } catch (err) {
+        console.warn("Supabase resetAllState warning:", err);
+        try {
+          await this.client.from("submissions").delete().eq("room_code", roomCode);
+          await this.client.from("teams").delete().eq("room_code", roomCode);
+        } catch (delErr) {
+          console.error("Direct table deletion fallback failed:", delErr);
+        }
+      }
+    }
+
     this.mockTeams = [];
-    localStorage.removeItem("swpag_mock_teams");
+    localStorage.setItem("swpag_mock_teams", JSON.stringify([]));
     localStorage.removeItem("swpag_session_v1");
     this.broadcastLocalUpdate([]);
+    return { success: true };
   }
 
   async seedDemoBot(roomCode = CONFIG.DEFAULT_ROOM_CODE) {

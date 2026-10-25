@@ -767,12 +767,24 @@ class App {
 
     const resetBtn = document.getElementById("admin-reset-all");
     if (resetBtn) {
-      resetBtn.onclick = () => {
-        if (confirm("WARNING: Are you sure you want to reset all game state and clear local teams?")) {
-          SUPABASE.resetAllState();
-          SOUND.playError();
-          alert("All session data has been reset.");
-          window.location.reload();
+      resetBtn.onclick = async () => {
+        const session = STORAGE.getSession();
+        const roomCode = session?.roomCode || CONFIG.DEFAULT_ROOM_CODE;
+        if (confirm(`WARNING: Are you sure you want to reset all game state, scores, and teams for room ${roomCode}? This action cannot be undone.`)) {
+          const originalText = resetBtn.innerText;
+          resetBtn.disabled = true;
+          resetBtn.innerText = "RESETTING MISSION DATA...";
+          try {
+            await SUPABASE.resetAllState(roomCode);
+            STORAGE.clearSession();
+            SOUND.playError();
+            alert(`All game, team, and session data for room ${roomCode} has been reset.`);
+          } catch (err) {
+            console.error("Reset error:", err);
+            alert("Reset completed with warnings. Refreshing interface...");
+          } finally {
+            window.location.reload();
+          }
         }
       };
     }

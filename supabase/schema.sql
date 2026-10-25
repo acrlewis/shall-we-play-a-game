@@ -130,6 +130,10 @@ CREATE POLICY "Teams can update their own profile"
 ON teams FOR UPDATE 
 USING (TRUE);
 
+CREATE POLICY "Public can delete teams" 
+ON teams FOR DELETE 
+USING (TRUE);
+
 -- Submissions: Public read access for live activity feed
 CREATE POLICY "Public can view submissions" 
 ON submissions FOR SELECT 
@@ -138,6 +142,10 @@ USING (TRUE);
 CREATE POLICY "Public can create submissions" 
 ON submissions FOR INSERT 
 WITH CHECK (TRUE);
+
+CREATE POLICY "Public can delete submissions" 
+ON submissions FOR DELETE 
+USING (TRUE);
 
 -- ------------------------------------------------------------------------------
 -- 9. Anti-Cheat & Atomic Submission Stored Procedure
@@ -264,7 +272,63 @@ END;
 $$;
 
 -- ------------------------------------------------------------------------------
--- 10. Enable Supabase Realtime Subscriptions
+-- 10. Operator Reset Stored Procedure
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION reset_room_data(
+    p_room_code VARCHAR(32) DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_target_room VARCHAR(32);
+    v_submissions_deleted INT := 0;
+    v_teams_deleted INT := 0;
+BEGIN
+    v_target_room := COALESCE(NULLIF(TRIM(p_room_code), ''), 'DEFCON-1983');
+
+    IF UPPER(v_target_room) = 'ALL' THEN
+        WITH deleted_subs AS (
+            DELETE FROM submissions RETURNING id
+        )
+        SELECT COUNT(*) INTO v_submissions_deleted FROM deleted_subs;
+
+        WITH deleted_teams AS (
+            DELETE FROM teams RETURNING id
+        )
+        SELECT COUNT(*) INTO v_teams_deleted FROM deleted_teams;
+    ELSE
+        WITH deleted_subs AS (
+            DELETE FROM submissions 
+            WHERE room_code = v_target_room
+            RETURNING id
+        )
+        SELECT COUNT(*) INTO v_submissions_deleted FROM deleted_subs;
+
+        WITH deleted_teams AS (
+            DELETE FROM teams 
+            WHERE room_code = v_target_room
+            RETURNING id
+        )
+        SELECT COUNT(*) INTO v_teams_deleted FROM deleted_teams;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', TRUE,
+        'room_code', v_target_room,
+        'teams_deleted', v_teams_deleted,
+        'submissions_deleted', v_submissions_deleted,
+        'message', format('Room %s reset: %s teams and %s submissions removed.', v_target_room, v_teams_deleted, v_submissions_deleted)
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION reset_room_data(VARCHAR) TO anon, authenticated, service_role;
+
+-- ------------------------------------------------------------------------------
+-- 11. Enable Supabase Realtime Subscriptions
 -- ------------------------------------------------------------------------------
 DO $$
 BEGIN
