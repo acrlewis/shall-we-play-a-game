@@ -134,8 +134,8 @@ export const CHALLENGES = [
     title: "The Regex Network Hunter",
     points: 150,
     hash: "2534c564adcb9b4274f7694696cc7691b63533367ea690dd5d44b9ddb6f9d066",
-    prompt: "An anomalous telemetry record appeared in the W.O.P.R. gateway logs:\n2026-10-22T06:14:02.812Z [ROUTER-CORE] Ingress packet dropped from 172.16.4.99; Internal default gateway route assigned to 10.240.16.1 via interface vlan100; MAC 00:1A:2B:3C:4D:5E\nWhat is the IP address of the internal default gateway in this log message?",
-    clue: "Extract the exact IPv4 address matching the gateway clause.",
+    prompt: "An anomalous telemetry record appeared in the W.O.P.R. gateway logs:\n2026-10-22T06:14:02.812Z [ROUTER-CORE] Ingress packet dropped from 172.16.4.99; Internal default gateway route assigned to 31 30 2e 32 34 30 2e 31 36 2e 31 via interface vlan100; MAC 00:1A:2B:3C:4D:5E\nWhat is the IP address of the internal default gateway in this log message?",
+    clue: "The IP address is listed in the log message in hexadecimal format. Extract the exact IPv4 address matching the gateway clause with hexdump in the terminal.",
     inputPlaceholder: "XXX.XXX.XXX.XXX",
     hints: [
       {
