@@ -440,8 +440,8 @@ VALUES
     'The Regex Network Hunter',
     150,
     '2534c564adcb9b4274f7694696cc7691b63533367ea690dd5d44b9ddb6f9d066',
-    'An anomalous telemetry record appeared in the W.O.P.R. gateway logs: "2026-10-22T06:14:02.812Z [ROUTER-CORE] Ingress packet dropped from 172.16.4.99; Internal default gateway route assigned to 10.240.16.1 via interface vlan100; MAC 00:1A:2B:3C:4D:5E". What is the IP address of the internal default gateway in this log message?',
-    'Extract the exact IPv4 address matching the gateway clause.',
+    'An anomalous telemetry record appeared in the W.O.P.R. gateway logs: "2026-10-22T06:14:02.812Z [ROUTER-CORE] Ingress packet dropped from 172.16.4.99; Internal default gateway route assigned to 31 30 2e 32 34 30 2e 31 36 2e 31 via interface vlan100; MAC 00:1A:2B:3C:4D:5E". What is the IP address of the internal default gateway in this log message?',
+    'The IP address is listed in the log message in hexadecimal format. Extract the exact IPv4 address matching the gateway clause with hexdump in the terminal.',
     'XXX.XXX.XXX.XXX',
     '[{"id": 1, "penaltyPct": 10, "text": "Look closely at the clause Internal default gateway route assigned to ..."}, {"id": 2, "penaltyPct": 25, "text": "It belongs to the private RFC 1918 Class A 10.x.x.x block."}]'::jsonb
 ),
