@@ -266,11 +266,11 @@ TIER B: TECH TRIVIA & ARCHITECTURE (SYSTEMS & PROTOCOLS)
 
 #### The Question
 > *"An anomalous telemetry record appeared in the W.O.P.R. gateway logs:*  
-> `2026-10-22T06:14:02.812Z [ROUTER-CORE] Ingress packet dropped from 172.16.4.99; Internal default gateway route assigned to 10.240.16.1 via interface vlan100; MAC 00:1A:2B:3C:4D:5E`  
+> `2026-10-22T06:14:02.812Z [ROUTER-CORE] Ingress packet dropped from 172.16.4.99; Internal default gateway route assigned to 31 30 2e 32 34 30 2e 31 36 2e 31 via interface vlan100; MAC 00:1A:2B:3C:4D:5E`  
 > *What is the IP address of the internal default gateway in this log message?"*
 
 #### In-Game Clue & Progressive Hints
-- **Default Clue:** Extract the exact IPv4 address matching the gateway clause.
+- **Default Clue:** The IP address is listed in the log message in hexadecimal format. Extract the exact IPv4 address matching the gateway clause with hexdump in the terminal.
 - **Hint 1 (-10% penalty / 135 pts net):** Look closely at the clause 'Internal default gateway route assigned to ...'.
 - **Hint 2 (-25% penalty / 112 pts net):** It belongs to the private RFC 1918 Class A 10.x.x.x block.
 
@@ -280,15 +280,52 @@ TIER B: TECH TRIVIA & ARCHITECTURE (SYSTEMS & PROTOCOLS)
    - Timestamp: `2026-10-22T06:14:02.812Z`
    - Host: `[ROUTER-CORE]`
    - Dropped packet source IP: `172.16.4.99` (RFC 1918 Class B address)
-   - Route Assignment: `Internal default gateway route assigned to 10.240.16.1 via interface vlan100`
+   - Route Assignment: `Internal default gateway route assigned to 31 30 2e 32 34 30 2e 31 36 2e 31 via interface vlan100`
    - Hardware address: `00:1A:2B:3C:4D:5E`
-2. **Regex Target Isolation:**
-   Using a regex pattern matching the gateway clause:
-   ```regex
-   gateway route assigned to (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})
-   ```
-   Capture group 1 extracts: `10.240.16.1`.
-3. **Submit:** `10.240.16.1`.
+
+2. **Hexadecimal String Extraction & Decoding:**
+   - **Regex Target Isolation:**  
+     Extract the space-delimited hex sequence following the route assignment clause:
+     ```regex
+     gateway route assigned to ([0-9a-fA-F ]+) via
+     ```
+     Capture group 1 extracts: `31 30 2e 32 34 30 2e 31 36 2e 31`.
+   - **Hex to ASCII Translation:**  
+     Each two-character hex pair represents an ASCII byte:
+     - `31` = `1`
+     - `30` = `0`
+     - `2e` = `.`
+     - `32` = `2`
+     - `34` = `4`
+     - `30` = `0`
+     - `2e` = `.`
+     - `31` = `1`
+     - `36` = `6`
+     - `2e` = `.`
+     - `31` = `1`  
+     Joining these decoded characters produces the IPv4 address: `10.240.16.1`.
+
+3. **Decoding Methods:**
+   - **Embedded W.O.P.R. Terminal:**  
+     Use the built-in `hexdump` tool in the Terminal Simulator tab:
+     ```bash
+     hexdump 31 30 2e 32 34 30 2e 31 36 2e 31
+     # ASCII Decoded: 10.240.16.1
+     ```
+   - **Host Terminal (CLI):**  
+     ```bash
+     echo "31 30 2e 32 34 30 2e 31 36 2e 31" | xxd -r -p
+     # 10.240.16.1
+     ```
+   - **Browser Developer Console:**  
+     ```javascript
+     "31 30 2e 32 34 30 2e 31 36 2e 31"
+       .split(" ")
+       .map(h => String.fromCharCode(parseInt(h, 16)))
+       .join(""); // "10.240.16.1"
+     ```
+
+4. **Submit:** `10.240.16.1`.
 
 ---
 
